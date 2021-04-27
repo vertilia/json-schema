@@ -7,7 +7,7 @@ A lightweight Draft 7 JSON Schema validator, according to [Understanding JSON Sc
 ```php
 <?php
 
-$validator = new Vertilia\JsonSchema('{
+$validator = new Vertilia\JsonSchema\JsonSchema('{
   "type": "array",
   "items": {"type": "number"}
 }');
