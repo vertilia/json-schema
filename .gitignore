@@ -1,0 +1,28 @@
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Windows folder config file
+[Dd]esktop.ini
+
+# Windows shortcuts
+*.lnk
+
+# Linux
+*~
+.Trash-*
+
+# IDEs
+.vscode/*
+.idea/*
+
+# composer
+composer.lock
+vendor/

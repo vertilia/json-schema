@@ -1,0 +1,23 @@
+{
+  "name": "vertilia/json-schema",
+  "description": "JSON schema validator",
+  "license": "BSD-2-Clause",
+  "type": "library",
+  "autoload": {
+    "exclude-from-classmap": [
+      "/tests/"
+    ],
+    "psr-4": {
+      "Vertilia\\JsonSchema\\": "src/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true
+  },
+  "require": {
+    "php": "^7.1"
+  },
+  "suggest": {
+    "phpunit/phpunit": "To run tests"
+  }
+}
