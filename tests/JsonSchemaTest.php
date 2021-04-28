@@ -43,10 +43,11 @@ class JsonSchemaTest extends TestCase
      * @dataProvider isValidStringProvider
      * @dataProvider isValidNumberProvider
      * @dataProvider isValidObjectProvider
+     * @dataProvider isValidArrayProvider
      * @dataProvider isValidBooleanProvider
      * @dataProvider isValidNullProvider
      * @dataProvider isValidGenericProvider
-     * @dataProvider isValidArrayProvider
+     * @dataProvider isValidMediaProvider
      * @covers ::__construct
      * @covers ::isValid
      * @param string $json_schema
@@ -140,58 +141,6 @@ class JsonSchemaTest extends TestCase
                 }',
                 true,
             ],
-        ];
-    }
-
-    /** data provider */
-    public function isValidNumberProvider()
-    {
-        $d4_number = '{
-            "$schema": "http://json-schema.org/draft-04/schema#",
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-            "exclusiveMaximum": true
-        }';
-
-        return [
-            // integer
-            ['{"type": "integer"}', '42', true],
-            ['{"type": "integer"}', '-1', true],
-            ['{"type": "integer"}', '3.1415926', false],
-            ['{"type": "integer"}', '"42"', false],
-
-            // number
-            ['{"type": "number"}', '42', true],
-            ['{"type": "number"}', '-1', true],
-            ['{"type": "number"}', '5.0', true],
-            ['{"type": "number"}', '2.99792458e8', true],
-            ['{"type": "number"}', '"42"', false],
-
-            // number / multipleOf
-            ['{"type": "number", "multipleOf": 1.0}', '42', true],
-            ['{"type": "number", "multipleOf": 1.0}', '42.0', true],
-            ['{"type": "number", "multipleOf": 1.0}', '3.14156926', false],
-            ['{"type": "number", "multipleOf": 10}', '0', true],
-            ['{"type": "number", "multipleOf": 10}', '10', true],
-            ['{"type": "number", "multipleOf": 10}', '20', true],
-            ['{"type": "number", "multipleOf": 10}', '23', false],
-
-            // number / range
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '-1', false],
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '0', true],
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '10', true],
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '99', true],
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '100', false],
-            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '101', false],
-
-            // D4: number / range
-            [$d4_number, '-1', false],
-            [$d4_number, '0', true],
-            [$d4_number, '10', true],
-            [$d4_number, '99', true],
-            [$d4_number, '100', false],
-            [$d4_number, '101', false],
         ];
     }
 
@@ -306,6 +255,58 @@ class JsonSchemaTest extends TestCase
             ['{"type": "string", "format": "json-pointer"}', '"not a relative-json-pointer"', false],
             ['{"type": "string", "format": "regex"}', '"^\\\\d+"', true],
             ['{"type": "string", "format": "regex"}', '""', false],
+        ];
+    }
+
+    /** data provider */
+    public function isValidNumberProvider()
+    {
+        $d4_number = '{
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "exclusiveMaximum": true
+        }';
+
+        return [
+            // integer
+            ['{"type": "integer"}', '42', true],
+            ['{"type": "integer"}', '-1', true],
+            ['{"type": "integer"}', '3.1415926', false],
+            ['{"type": "integer"}', '"42"', false],
+
+            // number
+            ['{"type": "number"}', '42', true],
+            ['{"type": "number"}', '-1', true],
+            ['{"type": "number"}', '5.0', true],
+            ['{"type": "number"}', '2.99792458e8', true],
+            ['{"type": "number"}', '"42"', false],
+
+            // number / multipleOf
+            ['{"type": "number", "multipleOf": 1.0}', '42', true],
+            ['{"type": "number", "multipleOf": 1.0}', '42.0', true],
+            ['{"type": "number", "multipleOf": 1.0}', '3.14156926', false],
+            ['{"type": "number", "multipleOf": 10}', '0', true],
+            ['{"type": "number", "multipleOf": 10}', '10', true],
+            ['{"type": "number", "multipleOf": 10}', '20', true],
+            ['{"type": "number", "multipleOf": 10}', '23', false],
+
+            // number / range
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '-1', false],
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '0', true],
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '10', true],
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '99', true],
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '100', false],
+            ['{"type": "number", "minimum": 0, "exclusiveMaximum": 100}', '101', false],
+
+            // D4: number / range
+            [$d4_number, '-1', false],
+            [$d4_number, '0', true],
+            [$d4_number, '10', true],
+            [$d4_number, '99', true],
+            [$d4_number, '100', false],
+            [$d4_number, '101', false],
         ];
     }
 
@@ -693,6 +694,7 @@ class JsonSchemaTest extends TestCase
             ['{"type": "array", "contains": {"type": "number"}}', '[1, 2, 3, 4, 5]', true],
 
             // tuples
+
             // array
             [$ex_4_6_1_1, '[1600, "Pennsylvania", "Avenue", "NW"]', true],
             [$ex_4_6_1_1, '[24, "Sussex", "Drive"]', false],
@@ -708,6 +710,22 @@ class JsonSchemaTest extends TestCase
             // array / additionalItems as schema
             [$ex_4_6_1_3, '[1600, "Pennsylvania", "Avenue", "NW", "Washington"]', true],
             [$ex_4_6_1_3, '[1600, "Pennsylvania", "Avenue", "NW", 20500]', false],
+
+            // length
+
+            // array / minItems, maxItems
+            ['{"type": "array", "minItems": 2, "maxItems": 3}', '[]', false],
+            ['{"type": "array", "minItems": 2, "maxItems": 3}', '[1]', false],
+            ['{"type": "array", "minItems": 2, "maxItems": 3}', '[1, 2]', true],
+            ['{"type": "array", "minItems": 2, "maxItems": 3}', '[1, 2, 3]', true],
+            ['{"type": "array", "minItems": 2, "maxItems": 3}', '[1, 2, 3, 4]', false],
+
+            // uniqueness
+
+            // array / uniqueItems
+            ['{"type": "array", "uniqueItems": true}', '[1, 2, 3, 4, 5]', true],
+            ['{"type": "array", "uniqueItems": true}', '[1, 2, 3, 3, 4]', false],
+            ['{"type": "array", "uniqueItems": true}', '[]', true],
         ];
     }
 
@@ -752,6 +770,24 @@ class JsonSchemaTest extends TestCase
             // D6: const
             ['{"const": "Antarctida"}', '"Antarctida"', true],
             ['{"const": "Antarctida"}', '"Arctic"', false],
+        ];
+    }
+
+    /** data provider */
+    public function isValidMediaProvider()
+    {
+        return [
+            // media
+            [
+                '{"type": "string", "contentMediaType": "text/html"}',
+                '"<!DOCTYPE html><html xmlns=\"http://www.w3.org/1999/xhtml\"><head></head></html>"',
+                true,
+            ],
+            [
+                '{"type": "string", "contentEncoding": "base64", "contentMediaType": "image/png"}',
+                '"iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA"',
+                true,
+            ],
         ];
     }
 }

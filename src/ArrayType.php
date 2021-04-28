@@ -25,12 +25,15 @@ class ArrayType extends BaseType
     {
         $result = is_array($context);
 
-        if (!$result and isset($this->label)) {
-            $this->errors[] = sprintf(
-                'value %s must be an array at context path: %s',
-                $this->contextStr($context, 64),
-                $this->label
-            );
+        if (!$result) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s must be an array at context path: %s',
+                    $this->contextStr($context, 64),
+                    $this->label
+                );
+            }
+            return false;
         }
 
         // verify items
@@ -51,6 +54,20 @@ class ArrayType extends BaseType
         if (isset($this->schema['contains'])
             and $this->draft_version >= 6
             and !$this->isValidContains($context)
+        ) {
+            $result = false;
+        }
+
+        // verify lengths
+        if ((isset($this->schema['minItems']) or isset($this->schema['maxItems']))
+            and !$this->isValidLength($context)
+        ) {
+            $result = false;
+        }
+
+        // verify uniqueness
+        if (isset($this->schema['uniqueItems'])
+            and !$this->isValidUniqueness($context)
         ) {
             $result = false;
         }
@@ -79,7 +96,6 @@ class ArrayType extends BaseType
 
     protected function isValidContains($context): bool
     {
-        $result = false;
         $schema = $this->schema['contains'];
 
         foreach ($context as $index => $item) {
@@ -146,6 +162,60 @@ class ArrayType extends BaseType
                     $result = false;
                 }
             }
+        }
+
+        return $result;
+    }
+
+    protected function isValidLength($context): bool
+    {
+        $result = true;
+        $count = count($context);
+
+        if (isset($this->schema['minItems'])
+            and is_numeric($this->schema['minItems'])
+            and $this->schema['minItems'] >= 0
+            and $count < $this->schema['minItems']
+        ) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'array has %u items, must contain at least %u items at context path: %s',
+                    $count,
+                    $this->schema['minItems'],
+                    $this->label
+                );
+            }
+            $result = false;
+        }
+
+        if (isset($this->schema['maxItems'])
+            and is_numeric($this->schema['maxItems'])
+            and $this->schema['maxItems'] >= 0
+            and $count > $this->schema['maxItems']
+        ) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'array has %u items, must contain maximum %u items at context path: %s',
+                    $count,
+                    $this->schema['maxItems'],
+                    $this->label
+                );
+            }
+            $result = false;
+        }
+
+        return $result;
+    }
+
+    protected function isValidUniqueness($context): bool
+    {
+        $result = count($context) == count(array_unique($context, SORT_REGULAR));
+
+        if (!$result and isset($this->label)) {
+            $this->errors[] = sprintf(
+                'array contains non-unique items at context path: %s',
+                $this->label
+            );
         }
 
         return $result;

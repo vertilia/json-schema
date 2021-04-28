@@ -13,12 +13,15 @@ class StringType extends BaseType
     {
         $result = is_string($context);
 
-        if (!$result and isset($this->label)) {
-            $this->errors[] = sprintf(
-                'value %s must be a string at context path: %s',
-                $this->contextStr($context, 64),
-                $this->label
-            );
+        if (!$result) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s must be a string at context path: %s',
+                    $this->contextStr($context, 64),
+                    $this->label
+                );
+            }
+            return false;
         }
 
         // verify lengths
@@ -38,6 +41,23 @@ class StringType extends BaseType
         // verify format
         if (isset($this->schema['format'])
             and !$this->isValidFormat($context)
+        ) {
+            $result = false;
+        }
+
+        // D7: verify content encoding
+        if (isset($this->schema['contentEncoding'])
+            and $this->draft_version >= 7
+            and !$this->isValidContentEncoding($context)
+        ) {
+            $result = false;
+        }
+
+
+        // D7: verify content media type
+        if (isset($this->schema['contentMediaType'])
+            and $this->draft_version >= 7
+            and !$this->isValidContentMediaType($context)
         ) {
             $result = false;
         }
@@ -288,6 +308,46 @@ class StringType extends BaseType
                         $this->errors[] = sprintf(
                             '"%s" format mismatch: empty string at context path %s',
                             $this->schema['format'],
+                            $this->label
+                        );
+                    }
+                    $result = false;
+                }
+                break;
+        }
+
+        return $result;
+    }
+
+    /**
+     * mime type correctness is not verified since is application dependent
+     * @param string $context
+     */
+    protected function isValidContentMediaType(string $context): bool
+    {
+        return true;
+    }
+
+    /**
+     * correctness is only guaranteed for base64 encoding
+     * @param string $context
+     */
+    protected function isValidContentEncoding(string $context): bool
+    {
+        $result = true;
+
+        switch (strtolower($this->schema['contentEncoding'])) {
+            case '7bit':
+            case '8bit':
+            case 'binary':
+            case 'quoted-printable':
+                break;
+            case 'base64':
+                // @see http://www.faqs.org/rfcs/rfc2045.html section 6.8
+                if (!preg_match('#^[A-Za-z0-9+/\s]*={0,2}$#', $context)) {
+                    if (isset($this->label)) {
+                        $this->errors[] = sprintf(
+                            'content is not base64-encoded string at context path %s',
                             $this->label
                         );
                     }
