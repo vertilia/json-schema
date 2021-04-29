@@ -5,17 +5,8 @@ namespace Vertilia\JsonSchema;
 
 class ArrayType extends BaseType
 {
-    /** @var JsonSchema */
-    protected $json_schema;
-
     /** @var mixed */
     protected $additional_items;
-
-    public function setSchema(JsonSchema $json_schema): self
-    {
-        $this->json_schema = $json_schema;
-        return $this;
-    }
 
     /**
      * @param mixed $context
@@ -23,9 +14,7 @@ class ArrayType extends BaseType
      */
     public function isValid($context): bool
     {
-        $result = is_array($context);
-
-        if (!$result) {
+        if (!is_array($context)) {
             if (isset($this->label)) {
                 $this->errors[] = sprintf(
                     'value %s must be an array at context path: %s',
@@ -35,6 +24,8 @@ class ArrayType extends BaseType
             }
             return false;
         }
+
+        $result = parent::isValid($context);
 
         // verify items
         if (isset($this->schema['items']) and is_array($this->schema['items'])) {

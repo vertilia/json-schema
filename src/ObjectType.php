@@ -5,9 +5,6 @@ namespace Vertilia\JsonSchema;
 
 class ObjectType extends BaseType
 {
-    /** @var JsonSchema */
-    protected $json_schema;
-
     /** @var array hashmap of all context properties */
     protected $context_properties = [];
 
@@ -20,21 +17,13 @@ class ObjectType extends BaseType
     /** @var array hashmap of pattern_property => schema */
     protected $pattern_schemas = [];
 
-    public function setSchema(JsonSchema $json_schema): self
-    {
-        $this->json_schema = $json_schema;
-        return $this;
-    }
-
     /**
      * @param mixed $context
      * @return bool
      */
     public function isValid($context): bool
     {
-        $result = is_object($context);
-
-        if (!$result) {
+        if (!is_object($context)) {
             if (isset($this->label)) {
                 $this->errors[] = sprintf(
                     'value %s must be an object at context path: %s',
@@ -44,6 +33,8 @@ class ObjectType extends BaseType
             }
             return false;
         }
+
+        $result = parent::isValid($context);
 
         $this->context_properties = get_object_vars($context);
         $ctx_props = array_keys($this->context_properties);

@@ -14,15 +14,18 @@ class NumberType extends BaseType
      */
     public function isValid($context): bool
     {
-        $result = is_float($context) || is_int($context);
-
-        if (!$result and isset($this->label)) {
-            $this->errors[] = sprintf(
-                'value %s must be a number at context path: %s',
-                $this->contextStr($context, 64),
-                $this->label
-            );
+        if (!is_float($context) and !is_int($context)) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s must be a number at context path: %s',
+                    $this->contextStr($context, 64),
+                    $this->label
+                );
+            }
+            return false;
         }
+
+        $result = parent::isValid($context);
 
         // verify multipleOf
         if (isset($this->schema['multipleOf'])

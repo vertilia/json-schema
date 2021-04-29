@@ -5,10 +5,13 @@ namespace Vertilia\JsonSchema;
 
 class BaseType implements IsValidInterface
 {
+    /** @var JsonSchema */
+    protected $json_schema;
+
     /** @var string[] */
     protected $errors = [];
 
-    /** @var array */
+    /** @var mixed */
     protected $schema;
 
     /** @var string */
@@ -18,7 +21,7 @@ class BaseType implements IsValidInterface
     protected $draft_version;
 
     /**
-     * @param array $schema
+     * @param mixed $schema
      * @param string|null $label (don't generate error message if null)
      * @param int $draft_version
      */
@@ -27,6 +30,12 @@ class BaseType implements IsValidInterface
         $this->schema = $schema;
         $this->label = $label;
         $this->draft_version = $draft_version;
+    }
+
+    public function setSchema(JsonSchema $json_schema): self
+    {
+        $this->json_schema = $json_schema;
+        return $this;
     }
 
     /**
@@ -45,7 +54,7 @@ class BaseType implements IsValidInterface
     public static function contextStr($context, $length): string
     {
         // compact consequent whitespaces
-        $compact = preg_replace('/\s+/', ' ', var_export($context, true));
+        $compact = json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         // split in 2 chunks in UTF-8 mode
         if (preg_match(sprintf('/^\s?(.{,%u})(.+)$/u', $length), $compact, $matches)) {
@@ -87,8 +96,24 @@ class BaseType implements IsValidInterface
 
         // D6: verify const
         if (isset($this->schema['const'])
-            and $this->draft_version > 4
+            and $this->draft_version >= 6
             and !$this->isValidConst($context)
+        ) {
+            $result = false;
+        }
+
+        // verify anyOf
+        if (isset($this->schema['anyOf'])
+            and is_array($this->schema['anyOf'])
+            and !$this->isValidAnyOf($context)
+        ) {
+            $result = false;
+        }
+
+        // verify allOf
+        if (isset($this->schema['allOf'])
+            and is_array($this->schema['allOf'])
+            and !$this->isValidAllOf($context)
         ) {
             $result = false;
         }
@@ -120,12 +145,51 @@ class BaseType implements IsValidInterface
     protected function isValidConst($context): bool
     {
         if ($context !== $this->schema['const']) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s is not a defined constant at context path: %s',
+                    $this->contextStr($context, 20),
+                    $this->label
+                );
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function isValidAnyOf($context): bool
+    {
+        foreach ($this->schema['anyOf'] as $schema) {
+            if ($this->json_schema->isValidContext($schema, $context, null)) {
+                return true;
+            }
+        }
+
+        if (isset($this->label)) {
             $this->errors[] = sprintf(
-                'value %s is not a defined constant at context path: %s',
+                'value %s does not match any subschema at context path: %s',
                 $this->contextStr($context, 20),
                 $this->label
             );
-            return false;
+        }
+
+        return false;
+    }
+
+    protected function isValidAllOf($context): bool
+    {
+        foreach ($this->schema['allOf'] as $schema) {
+            if (!$this->json_schema->isValidContext($schema, $context, null)) {
+                if (isset($this->label)) {
+                    $this->errors[] = sprintf(
+                        'value %s does not match all subschemas at context path: %s',
+                        $this->contextStr($context, 20),
+                        $this->label
+                    );
+                }
+                return false;
+            }
         }
 
         return true;

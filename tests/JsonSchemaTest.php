@@ -48,6 +48,7 @@ class JsonSchemaTest extends TestCase
      * @dataProvider isValidNullProvider
      * @dataProvider isValidGenericProvider
      * @dataProvider isValidMediaProvider
+     * @dataProvider isValidCombinationsProvider
      * @covers ::__construct
      * @covers ::isValid
      * @param string $json_schema
@@ -60,7 +61,7 @@ class JsonSchemaTest extends TestCase
         $this->assertEquals($expected, $schema->isValid($json_value));
         $errors = $schema->getErrors();
         if ($errors) {
-            print_r($errors);
+            echo implode("; ", $errors), PHP_EOL;
         }
     }
 
@@ -788,6 +789,34 @@ class JsonSchemaTest extends TestCase
                 '"iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAA"',
                 true,
             ],
+        ];
+    }
+
+    /** data provider */
+    public function isValidCombinationsProvider()
+    {
+        $ex_4_11_0 =
+        '{
+            "anyOf": [
+                {"type": "string", "maxLength": 5},
+                {"type": "number", "minimum": 0}
+            ]
+        }';
+
+        return [
+            // combining schemas
+
+            // anyOf
+            [$ex_4_11_0, '"short"', true],
+            [$ex_4_11_0, '"too long"', false],
+            [$ex_4_11_0, '12', true],
+            [$ex_4_11_0, '-5', false],
+
+            // allOf
+            ['{"allOf": [{"type": "string"}, {"maxLength": 5}]}', '"short"', true],
+            ['{"allOf": [{"type": "string"}, {"maxLength": 5}]}', '"too long"', false],
+            ['{"allOf": [{"type": "string"}, {"type": "number"}]}', '"No way"', false],
+            ['{"allOf": [{"type": "string"}, {"type": "number"}]}', '-1', false],
         ];
     }
 }

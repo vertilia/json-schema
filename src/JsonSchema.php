@@ -14,20 +14,40 @@ class JsonSchema
 
     const DRAFT_VERSIONS = [
         self::DRAFT_LATEST => 7,
-        'http://json-schema.org/schema#' => 7,
         'http://json-schema.org/draft-07/schema#' => 7,
         'http://json-schema.org/draft-06/schema#' => 6,
         'http://json-schema.org/draft-04/schema#' => 4,
+        'http://json-schema.org/schema#' => 4,
     ];
 
-    const TYPES = [
-        'null' => true,
-        'boolean' => true,
-        'numeric' => true,
-        'integer' => true,
-        'string' => true,
-        'array' => true,
-        'object' => true,
+    const KEYWORDS_TO_TYPES = [
+        // string
+        'minLength' => 'string',
+        'maxLength' => 'string',
+        'pattern' => 'string',
+        'format' => 'string',
+        // number
+        'multipleOf' => 'number',
+        'minimum' => 'number',
+        'exclusiveMinimum' => 'number',
+        'maximum' => 'number',
+        'exclusiveMaximum' => 'number',
+        // object
+        'properties' => 'object',
+        'additionalProperties' => 'object',
+        'required' => 'object',
+        'propertyNames' => 'object',
+        'minProperties' => 'object',
+        'maxProperties' => 'object',
+        'dependencies' => 'object',
+        'patternProperties' => 'object',
+        // array
+        'items' => 'array',
+        'additionalItems' => 'array',
+        'contains' => 'array',
+        'minItems' => 'array',
+        'maxItems' => 'array',
+        'uniqueItems' => 'array',
     ];
 
     /** @var string[] */
@@ -108,27 +128,52 @@ class JsonSchema
      */
     public function isValidContext($schema, $context, ?string $label): bool
     {
-        if ($schema === false) {
+        // D6: boolean schema
+        if (is_bool($schema) and $this->draft_version >= 6) {
+            if (!$schema and isset($label)) {
+                $this->errors[] = sprintf(
+                    'schema never matches at context path: %s',
+                    $label
+                );
+            }
+            return $schema;
+        }
+
+        if (!is_array($schema)) {
+            if (isset($label)) {
+                $this->errors[] = sprintf(
+                    'schema is not an object at context path: %s',
+                    $label
+                );
+            }
             return false;
+        }
+
+        if (empty($schema['type'])) {
+            // define type by a first non-generic keyword
+            $verif_array = array_intersect_key(self::KEYWORDS_TO_TYPES, $schema);
+            if ($verif_array) {
+                $schema['type'] = reset($verif_array);
+            }
         }
 
         if (isset($schema['type'])) {
             if (is_string($schema['type'])) {
                 switch ($schema['type']) {
                     case 'integer':
-                        $node = new IntegerType($schema, $label, $this->draft_version);
+                        $node = (new IntegerType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     case 'number':
-                        $node = new NumberType($schema, $label, $this->draft_version);
+                        $node = (new NumberType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     case 'boolean':
-                        $node = new BooleanType($schema, $label, $this->draft_version);
+                        $node = (new BooleanType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     case 'null':
-                        $node = new NullType($schema, $label, $this->draft_version);
+                        $node = (new NullType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     case 'string':
-                        $node = new StringType($schema, $label, $this->draft_version);
+                        $node = (new StringType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     case 'object':
                         $node = (new ObjectType($schema, $label, $this->draft_version))->setSchema($this);
@@ -137,7 +182,7 @@ class JsonSchema
                         $node = (new ArrayType($schema, $label, $this->draft_version))->setSchema($this);
                         break;
                     default:
-                        $node = new BaseType($schema, $label, $this->draft_version);
+                        $node = (new BaseType($schema, $label, $this->draft_version))->setSchema($this);
                 }
                 $valid = $node->isValid($context);
                 $errors = $node->getErrors();
@@ -165,7 +210,7 @@ class JsonSchema
                 $valid = true;
             }
         } else {
-            $node = new BaseType($schema, $label, $this->draft_version);
+            $node = (new BaseType($schema, $label, $this->draft_version))->setSchema($this);
             $valid = $node->isValid($context);
             $errors = $node->getErrors();
             if ($errors) {

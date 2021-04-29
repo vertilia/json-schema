@@ -11,15 +11,18 @@ class BooleanType extends BaseType
      */
     public function isValid($context): bool
     {
-        $result = is_bool($context);
-
-        if (!$result and isset($this->label)) {
-            $this->errors[] = sprintf(
-                'value %s must be boolean at context path: %s',
-                $this->contextStr($context, 64),
-                $this->label
-            );
+        if (!is_bool($context)) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s must be boolean at context path: %s',
+                    $this->contextStr($context, 64),
+                    $this->label
+                );
+            }
+            return false;
         }
+
+        $result = parent::isValid($context);
 
         return $result ? parent::isValid($context) : false;
     }

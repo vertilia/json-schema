@@ -11,9 +11,7 @@ class StringType extends BaseType
      */
     public function isValid($context): bool
     {
-        $result = is_string($context);
-
-        if (!$result) {
+        if (!is_string($context)) {
             if (isset($this->label)) {
                 $this->errors[] = sprintf(
                     'value %s must be a string at context path: %s',
@@ -23,6 +21,8 @@ class StringType extends BaseType
             }
             return false;
         }
+
+        $result = parent::isValid($context);
 
         // verify lengths
         if ((isset($this->schema['minLength']) or isset($this->schema['maxLength']))
