@@ -30,10 +30,10 @@ class JsonSchemaTest extends TestCase
     public function getVersionProvider()
     {
         return [
+            ['{"$schema": "http://json-schema.org/schema#"}', 4],
             ['{"$schema": "http://json-schema.org/draft-04/schema#"}', 4],
             ['{"$schema": "http://json-schema.org/draft-06/schema#"}', 6],
             ['{"$schema": "http://json-schema.org/draft-07/schema#"}', 7],
-            ['{"$schema": "http://json-schema.org/schema#"}', 7],
             ['{"$schema": "http://json-schema.org/draft/2019-09/schema#"}', 7],
         ];
     }
@@ -802,11 +802,56 @@ class JsonSchemaTest extends TestCase
                 {"type": "number", "minimum": 0}
             ]
         }';
+        $ex_4_11_1_1 =
+        '{
+            "definitions": {
+                "address": {
+                    "type": "object",
+                    "properties": {
+                        "street_address": {"type": "string"},
+                        "city": {"type": "string"},
+                        "state": {"type": "string"}
+                    },
+                    "required": ["street_address", "city", "state"]
+                }
+            },
+            "allOf": [
+                {"$ref": "#/definitions/address"},
+                {
+                    "properties": {
+                        "type": {"enum": ["residential", "business"]}
+                    }
+                }
+            ]
+        }';
+        $ex_4_11_1_2 =
+        '{
+            "definitions": {
+                "address": {
+                    "type": "object",
+                    "properties": {
+                        "street_address": {"type": "string"},
+                        "city": {"type": "string"},
+                        "state": {"type": "string"}
+                    },
+                    "required": ["street_address", "city", "state"]
+                }
+            },
+            "allOf": [
+                {"$ref": "#/definitions/address"},
+                {
+                    "properties": {
+                        "type": {"enum": ["residential", "business"]}
+                    }
+                }
+            ],
+            "additionalProperties": false
+        }';
 
         return [
             // combining schemas
 
-            // anyOf
+            // anyOf - starter
             [$ex_4_11_0, '"short"', true],
             [$ex_4_11_0, '"too long"', false],
             [$ex_4_11_0, '12', true],
@@ -817,6 +862,46 @@ class JsonSchemaTest extends TestCase
             ['{"allOf": [{"type": "string"}, {"maxLength": 5}]}', '"too long"', false],
             ['{"allOf": [{"type": "string"}, {"type": "number"}]}', '"No way"', false],
             ['{"allOf": [{"type": "string"}, {"type": "number"}]}', '-1', false],
+            [
+                $ex_4_11_1_1,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "city": "Washington",
+                    "state": "DC",
+                    "type": "business"
+                }',
+                true,
+            ],
+            [
+                $ex_4_11_1_2,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "city": "Washington",
+                    "state": "DC",
+                    "type": "business"
+                }',
+                false,
+            ],
+
+            // anyOf
+            ['{"anyOf": [{"type": "string"}, {"type": "number"}]}', '"Yes"', true],
+            ['{"anyOf": [{"type": "string"}, {"type": "number"}]}', '42', true],
+            ['{"anyOf": [{"type": "string"}, {"type": "number"}]}', '{"Not a": "string or number"}', false],
+
+            // oneOf
+            ['{"oneOf": [{"type": "number", "multipleOf": 5}, {"type": "number", "multipleOf": 3}]}', '10', true],
+            ['{"oneOf": [{"type": "number", "multipleOf": 5}, {"type": "number", "multipleOf": 3}]}', '9', true],
+            ['{"oneOf": [{"type": "number", "multipleOf": 5}, {"type": "number", "multipleOf": 3}]}', '2', false],
+            ['{"oneOf": [{"type": "number", "multipleOf": 5}, {"type": "number", "multipleOf": 3}]}', '15', false],
+            ['{"type": "number", "oneOf": [{"multipleOf": 5}, {"multipleOf": 3}]}', '10', true],
+            ['{"type": "number", "oneOf": [{"multipleOf": 5}, {"multipleOf": 3}]}', '9', true],
+            ['{"type": "number", "oneOf": [{"multipleOf": 5}, {"multipleOf": 3}]}', '2', false],
+            ['{"type": "number", "oneOf": [{"multipleOf": 5}, {"multipleOf": 3}]}', '15', false],
+
+            // not
+            ['{"not": {"type": "string"}}', '42', true],
+            ['{"not": {"type": "string"}}', '{"key": "value"}', true],
+            ['{"not": {"type": "string"}}', '"I am a string"', false],
         ];
     }
 }

@@ -118,6 +118,21 @@ class BaseType implements IsValidInterface
             $result = false;
         }
 
+        // verify oneOf
+        if (isset($this->schema['oneOf'])
+            and is_array($this->schema['oneOf'])
+            and !$this->isValidOneOf($context)
+        ) {
+            $result = false;
+        }
+
+        // verify not
+        if (isset($this->schema['not'])
+            and !$this->isValidNot($context)
+        ) {
+            $result = false;
+        }
+
         return $result;
     }
 
@@ -190,6 +205,54 @@ class BaseType implements IsValidInterface
                 }
                 return false;
             }
+        }
+
+        return true;
+    }
+
+    protected function isValidOneOf($context): bool
+    {
+        $matched = false;
+
+        foreach ($this->schema['oneOf'] as $schema) {
+            if ($this->json_schema->isValidContext($schema, $context, null)) {
+                if ($matched) {
+                    if (isset($this->label)) {
+                        $this->errors[] = sprintf(
+                            'several matches found at context path: %s',
+                            $this->label
+                        );
+                    }
+                    return false;
+                }
+                $matched = true;
+            }
+        }
+
+        if (!$matched) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'no match found at context path: %s',
+                    $this->label
+                );
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function isValidNot($context): bool
+    {
+        if ($this->json_schema->isValidContext($this->schema['not'], $context, null)) {
+            if (isset($this->label)) {
+                $this->errors[] = sprintf(
+                    'value %s matched at context path: %s',
+                    $this->contextStr($context, 20),
+                    $this->label
+                );
+            }
+            return false;
         }
 
         return true;
