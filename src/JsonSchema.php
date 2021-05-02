@@ -161,28 +161,28 @@ class JsonSchema
             if (is_string($schema['type'])) {
                 switch ($schema['type']) {
                     case 'integer':
-                        $node = (new IntegerType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new IntegerType($schema, $label, $this);
                         break;
                     case 'number':
-                        $node = (new NumberType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new NumberType($schema, $label, $this);
                         break;
                     case 'boolean':
-                        $node = (new BooleanType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new BooleanType($schema, $label, $this);
                         break;
                     case 'null':
-                        $node = (new NullType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new NullType($schema, $label, $this);
                         break;
                     case 'string':
-                        $node = (new StringType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new StringType($schema, $label, $this);
                         break;
                     case 'object':
-                        $node = (new ObjectType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new ObjectType($schema, $label, $this);
                         break;
                     case 'array':
-                        $node = (new ArrayType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new ArrayType($schema, $label, $this);
                         break;
                     default:
-                        $node = (new BaseType($schema, $label, $this->draft_version))->setSchema($this);
+                        $node = new BaseType($schema, $label, $this);
                 }
                 $valid = $node->isValid($context);
                 $errors = $node->getErrors();
@@ -210,7 +210,7 @@ class JsonSchema
                 $valid = true;
             }
         } else {
-            $node = (new BaseType($schema, $label, $this->draft_version))->setSchema($this);
+            $node = new BaseType($schema, $label, $this);
             $valid = $node->isValid($context);
             $errors = $node->getErrors();
             if ($errors) {

@@ -7,9 +7,9 @@ trait IsValidRangeTrait
 {
     protected function isValidRange($context): bool
     {
-        return $this->draft_version < 6
-            ? $this->isValidRangeV4($context)
-            : $this->isValidRangeV6($context);
+        return $this->json_schema->getVersion() >= 6
+            ? $this->isValidRangeV6($context)
+            : $this->isValidRangeV4($context);
     }
 
     protected function isValidRangeV6($context): bool

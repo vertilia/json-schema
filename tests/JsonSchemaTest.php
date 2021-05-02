@@ -49,6 +49,7 @@ class JsonSchemaTest extends TestCase
      * @dataProvider isValidGenericProvider
      * @dataProvider isValidMediaProvider
      * @dataProvider isValidCombinationsProvider
+     * @dataProvider isValidConditionsProvider
      * @covers ::__construct
      * @covers ::isValid
      * @param string $json_schema
@@ -902,6 +903,185 @@ class JsonSchemaTest extends TestCase
             ['{"not": {"type": "string"}}', '42', true],
             ['{"not": {"type": "string"}}', '{"key": "value"}', true],
             ['{"not": {"type": "string"}}', '"I am a string"', false],
+        ];
+    }
+
+    /** data provider */
+    public function isValidConditionsProvider()
+    {
+        $ex_4_12_1 =
+        '{
+            "type": "object",
+            "properties": {
+                "street_address": {
+                    "type": "string"
+                },
+                "country": {
+                    "default": "United States of America",
+                    "enum": ["United States of America", "Canada"]
+                }
+            },
+            "if": {
+                "properties": {
+                    "country": {
+                        "const": "United States of America"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "postal_code": {
+                        "pattern": "[0-9]{5}(-[0-9]{4})?"
+                    }
+                }
+            },
+            "else": {
+                "properties": {
+                    "postal_code": {
+                        "pattern": "[A-Z][0-9][A-Z] [0-9][A-Z][0-9]"
+                    }
+                }
+            }
+        }';
+        $ex_4_12_2 =
+        '{
+            "type": "object",
+            "properties": {
+                "street_address": {
+                    "type": "string"
+                },
+                "country": {
+                    "default": "United States of America",
+                    "enum": ["United States of America", "Canada", "Netherlands"]
+                }
+            },
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {"country": {"const": "United States of America"}}
+                    },
+                    "then": {
+                        "properties": {"postal_code": {"pattern": "[0-9]{5}(-[0-9]{4})?"}}
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {"country": {"const": "Canada"}},
+                        "required": ["country"]
+                    },
+                    "then": {
+                        "properties": {"postal_code": {"pattern": "[A-Z][0-9][A-Z] [0-9][A-Z][0-9]"}}
+                    }
+                },
+                {
+                    "if": {
+                        "properties": {"country": {"const": "Netherlands"}},
+                        "required": ["country"]
+                    },
+                    "then": {
+                        "properties": {"postal_code": {"pattern": "[0-9]{4} [A-Z]{2}"}}
+                    }
+                }
+            ]
+        }';
+
+        return [
+            // D7: conditionals
+            [
+                $ex_4_12_1,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "country": "United States of America",
+                    "postal_code": "20500"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_1,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "postal_code": "20500"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_1,
+                '{
+                    "street_address": "24 Sussex Drive",
+                    "country": "Canada",
+                    "postal_code": "K1M 1M4"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_1,
+                '{
+                    "street_address": "24 Sussex Drive",
+                    "country": "Canada",
+                    "postal_code": "10000"
+                }',
+                false,
+            ],
+            [
+                $ex_4_12_1,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "postal_code": "K1M 1M4"
+                }',
+                false,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "country": "United States of America",
+                    "postal_code": "20500"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "postal_code": "20500"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "24 Sussex Drive",
+                    "country": "Canada",
+                    "postal_code": "K1M 1M4"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "Adriaan Goekooplaan",
+                    "country": "Netherlands",
+                    "postal_code": "2517 JX"
+                }',
+                true,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "24 Sussex Drive",
+                    "country": "Canada",
+                    "postal_code": "10000"
+                }',
+                false,
+            ],
+            [
+                $ex_4_12_2,
+                '{
+                    "street_address": "1600 Pennsylvania Avenue NW",
+                    "postal_code": "K1M 1M4"
+                }',
+                false,
+            ],
         ];
     }
 }

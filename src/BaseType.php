@@ -17,25 +17,16 @@ class BaseType implements IsValidInterface
     /** @var string */
     protected $label;
 
-    /** @var int */
-    protected $draft_version;
-
     /**
      * @param mixed $schema
      * @param string|null $label (don't generate error message if null)
-     * @param int $draft_version
+     * @param JsonSchema $json_schema
      */
-    public function __construct($schema, ?string $label, int $draft_version = null)
+    public function __construct($schema, ?string $label, JsonSchema $json_schema)
     {
         $this->schema = $schema;
         $this->label = $label;
-        $this->draft_version = $draft_version;
-    }
-
-    public function setSchema(JsonSchema $json_schema): self
-    {
         $this->json_schema = $json_schema;
-        return $this;
     }
 
     /**
@@ -79,6 +70,28 @@ class BaseType implements IsValidInterface
     }
 
     /**
+     * @param string|null $label
+     * @param string $property
+     * @return string|null
+     */
+    protected static function labelProperty(?string $label, string $property): ?string
+    {
+        return isset($label)
+            ? ($label === '#/' ? "#/$property" : "$label/$property")
+            : null;
+    }
+
+    /**
+     * @param string|null $label
+     * @param int $index
+     * @return string|null
+     */
+    protected static function labelIndex(?string $label, int $index): ?string
+    {
+        return isset($label) ? "{$label}[$index]" : null;
+    }
+
+    /**
      * @param mixed $context
      * @return bool
      */
@@ -96,7 +109,7 @@ class BaseType implements IsValidInterface
 
         // D6: verify const
         if (isset($this->schema['const'])
-            and $this->draft_version >= 6
+            and $this->json_schema->getVersion() >= 6
             and !$this->isValidConst($context)
         ) {
             $result = false;
@@ -131,6 +144,21 @@ class BaseType implements IsValidInterface
             and !$this->isValidNot($context)
         ) {
             $result = false;
+        }
+
+        // verify if
+        if (isset($this->schema['if'])
+            and $this->json_schema->getVersion() >= 7
+        ) {
+            if (!isset($this->schema['then'])) {
+                $this->schema['then'] = true;
+            }
+            if (!isset($this->schema['else'])) {
+                $this->schema['else'] = true;
+            }
+            if (!$this->isValidIf($context)) {
+                $result = false;
+            }
         }
 
         return $result;
@@ -256,5 +284,14 @@ class BaseType implements IsValidInterface
         }
 
         return true;
+    }
+
+    protected function isValidIf($context): bool
+    {
+        if ($this->json_schema->isValidContext($this->schema['if'], $context, null)) {
+            return $this->json_schema->isValidContext($this->schema['then'], $context, $this->label);
+        } else {
+            return $this->json_schema->isValidContext($this->schema['else'], $context, $this->label);
+        }
     }
 }

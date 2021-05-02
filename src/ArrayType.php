@@ -43,7 +43,7 @@ class ArrayType extends BaseType
 
         // D6: verify contains
         if (isset($this->schema['contains'])
-            and $this->draft_version >= 6
+            and $this->json_schema->getVersion() >= 6
             and !$this->isValidContains($context)
         ) {
             $result = false;
@@ -75,7 +75,7 @@ class ArrayType extends BaseType
             $item_valid = $this->json_schema->isValidContext(
                 $schema,
                 $item,
-                $this->label == '#/' ? "#/[$index]" : "$this->label[$index]"
+                $this->labelIndex($this->label, (int)$index)
             );
             if (!$item_valid) {
                 $result = false;
@@ -129,7 +129,7 @@ class ArrayType extends BaseType
                 $value_valid = $this->json_schema->isValidContext(
                     $this->schema['items'][$index],
                     $value,
-                    $this->label == '#/' ? "#/[$index]" : "$this->label[$index]"
+                    $this->labelIndex($this->label, (int)$index)
                 );
                 if (!$value_valid) {
                     $result = false;
@@ -138,7 +138,7 @@ class ArrayType extends BaseType
                 if (isset($this->label)) {
                     $this->errors[] = sprintf(
                         'additional items forbidden at context path: %s',
-                        $this->label == '#/' ? "#/[$index]" : "$this->label[$index]"
+                        $this->labelIndex($this->label, (int)$index)
                     );
                 }
                 $result = false;
@@ -147,7 +147,7 @@ class ArrayType extends BaseType
                 $value_valid = $this->json_schema->isValidContext(
                     $this->additional_items,
                     $value,
-                    $this->label == '#/' ? "#/[$index]" : "$this->label[$index]"
+                    $this->labelIndex($this->label, (int)$index)
                 );
                 if (!$value_valid) {
                     $result = false;

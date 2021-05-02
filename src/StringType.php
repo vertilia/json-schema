@@ -47,7 +47,7 @@ class StringType extends BaseType
 
         // D7: verify content encoding
         if (isset($this->schema['contentEncoding'])
-            and $this->draft_version >= 7
+            and $this->json_schema->getVersion() >= 7
             and !$this->isValidContentEncoding($context)
         ) {
             $result = false;
@@ -56,7 +56,7 @@ class StringType extends BaseType
 
         // D7: verify content media type
         if (isset($this->schema['contentMediaType'])
-            and $this->draft_version >= 7
+            and $this->json_schema->getVersion() >= 7
             and !$this->isValidContentMediaType($context)
         ) {
             $result = false;

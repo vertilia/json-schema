@@ -95,7 +95,7 @@ class ObjectType extends BaseType
         if (isset($this->schema['required'])
             and is_array($this->schema['required'])
         ) {
-            if ($this->draft_version <= 4 and empty($this->schema['required'])) {
+            if ($this->json_schema->getVersion() <= 4 and empty($this->schema['required'])) {
                 if (isset($this->label)) {
                     $this->errors[] = sprintf(
                         'D4: "required" must contain at least one string at context path %s',
@@ -109,9 +109,9 @@ class ObjectType extends BaseType
             }
         }
 
-        // verify propertyNames
+        // D6: verify propertyNames
         if (isset($this->schema['propertyNames'])
-            and $this->draft_version >= 6
+            and $this->json_schema->getVersion() >= 6
             and !$this->isValidPropertyNames($context)
         ) {
             $result = false;
@@ -144,7 +144,7 @@ class ObjectType extends BaseType
                 $prop_valid = $this->json_schema->isValidContext(
                     $schema,
                     $context->$property,
-                    $this->label == '#/' ? "#/$property" : "$this->label/$property"
+                    $this->labelProperty($this->label, $property)
                 );
                 if (!$prop_valid) {
                     $result = false;
@@ -163,7 +163,7 @@ class ObjectType extends BaseType
             $prop_valid = $this->json_schema->isValidContext(
                 $schema,
                 $context->$property,
-                $this->label == '#/' ? "#/$property" : "$this->label/$property"
+                $this->labelProperty($this->label, $property)
             );
             if (!$prop_valid) {
                 $result = false;
@@ -178,14 +178,23 @@ class ObjectType extends BaseType
         $result = true;
 
         if ($this->schema['additionalProperties'] === false) {
-            return empty($this->additional_properties);
+            if (!empty($this->additional_properties)) {
+                if (isset($this->label)) {
+                    $this->errors[] = sprintf(
+                        'restricted properties: %s at context path %s',
+                        $this->contextStr(implode(', ', $this->additional_properties), 20),
+                        $this->label
+                    );
+                }
+                $result = false;
+            }
         } elseif (is_array($this->schema['additionalProperties'])) {
             $additional_schema = $this->schema['additionalProperties'];
             foreach ($this->additional_properties as $property) {
                 $prop_valid = $this->json_schema->isValidContext(
                     $additional_schema,
                     $this->context_properties[$property],
-                    $this->label == '#/' ? "#/$property" : "$this->label/$property"
+                    $this->labelProperty($this->label, $property)
                 );
                 if (!$prop_valid) {
                     $result = false;
@@ -219,6 +228,7 @@ class ObjectType extends BaseType
     {
         $result = true;
         $schema = $this->schema['propertyNames'];
+        // since object keys must always be strings
         if (is_array($schema)) {
             $schema['type'] = 'string';
         }
@@ -227,7 +237,7 @@ class ObjectType extends BaseType
             $prop_valid = $this->json_schema->isValidContext(
                 $schema,
                 $property,
-                "$this->label[$property]"
+                $this->labelProperty($this->label, $property)
             );
             if (!$prop_valid) {
                 $result = false;
