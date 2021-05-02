@@ -146,7 +146,7 @@ class BaseType implements IsValidInterface
             $result = false;
         }
 
-        // verify if
+        // D7: verify if
         if (isset($this->schema['if'])
             and $this->json_schema->getVersion() >= 7
         ) {

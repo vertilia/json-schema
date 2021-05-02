@@ -50,6 +50,7 @@ class JsonSchemaTest extends TestCase
      * @dataProvider isValidMediaProvider
      * @dataProvider isValidCombinationsProvider
      * @dataProvider isValidConditionsProvider
+     * @dataProvider isValidStructuringProvider
      * @covers ::__construct
      * @covers ::isValid
      * @param string $json_schema
@@ -1081,6 +1082,94 @@ class JsonSchemaTest extends TestCase
                     "postal_code": "K1M 1M4"
                 }',
                 false,
+            ],
+        ];
+    }
+
+    /** data provider */
+    public function isValidStructuringProvider()
+    {
+        return [
+            // reuse
+            [
+                '{
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "definitions": {
+                        "address": {
+                            "type": "object",
+                            "properties": {
+                                "street_address": {"type": "string"},
+                                "city": {"type": "string"},
+                                "state": {"type": "string"}
+                            },
+                            "required": ["street_address", "city", "state"]
+                        }
+                    },
+                    "type": "object",
+                    "properties": {
+                        "billing_address": {"$ref": "#/definitions/address"},
+                        "shipping_address": {"$ref": "#/definitions/address"}
+                    }
+                }',
+                '{
+                    "shipping_address": {
+                        "street_address": "1600 Pennsylvania Avenue NW",
+                        "city": "Washington",
+                        "state": "DC"
+                    },
+                    "billing_address": {
+                        "street_address": "1st Street SE",
+                        "city": "Washington",
+                        "state": "DC"
+                    }
+                }',
+                true,
+            ],
+            // recursion
+            [
+                '{
+                    "$schema": "http://json-schema.org/draft-07/schema#",
+                    "definitions": {
+                        "person": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "children": {
+                                    "type": "array",
+                                    "items": {"$ref": "#/definitions/person"},
+                                    "default": []
+                                }
+                            }
+                        }
+                    },
+                    "type": "object",
+                    "properties": {
+                        "person": {"$ref": "#/definitions/person"}
+                    }
+                }',
+                '{
+                    "person": {
+                        "name": "Elizabeth",
+                        "children": [
+                            {
+                                "name": "Charles",
+                                "children": [
+                                    {
+                                        "name": "William",
+                                        "children": [
+                                            {"name": "George"},
+                                            {"name": "Charlotte"}
+                                        ]
+                                    },
+                                    {
+                                        "name": "Harry"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }',
+                true,
             ],
         ];
     }
